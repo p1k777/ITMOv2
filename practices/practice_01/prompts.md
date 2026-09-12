@@ -4,7 +4,7 @@
 
 | ID | Артефакт и цель | Инструмент / модель | Тип промпта | Запрос или ссылка на него | Результат или ссылка | Что приняли | Что отклонили или исправили | Как проверили |
 |---|---|---|---|---|---|---|---|---|
-| P1-01 | Baseline-ревью `TRAINING_PR.diff` |  | zero-shot |  |  |  |  |  |
+| P1-01 | Baseline-ревью `TRAINING_PR.diff` | gpt-5 | zero-shot | "@practices/practice_01/TRAINING_PR.diff проверь pr, найди ошибки" | [`zero_shot_resp.md`](./zero_shot_resp.md) |  |  |  |
 | P1-02 | Повторное ревью с master prompt |  | master prompt |  |  |  |  |  |
 | P1-03 |  |  |  |  |  |  |  |  |
 
