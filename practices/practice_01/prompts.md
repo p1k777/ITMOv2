@@ -5,7 +5,7 @@
 | ID | Артефакт и цель | Инструмент / модель | Тип промпта | Запрос или ссылка на него | Результат или ссылка | Что приняли | Что отклонили или исправили | Как проверили |
 |---|---|---|---|---|---|---|---|---|
 | P1-01 | Baseline-ревью `TRAINING_PR.diff` | gpt-5 | zero-shot | "@practices/practice_01/TRAINING_PR.diff проверь pr, найди ошибки" | [`zero_shot_resp.md`](./zero_shot_resp.md) |  |  |  |
-| P1-02 | Повторное ревью с master prompt |  | master prompt |  |  |  |  |  |
+| P1-02 | Повторное ревью `TRAINING_PR.diff` с Master Prompt v1 | gpt-5 | master prompt | [Master Prompt v1](#master-prompt-v1); вход: @practices/practice_01/TRAINING_PR.diff | [`master_prompt_resp.md`](./master_prompt_resp.md) | Приняли формат OUT-1; 3 риска с file/line/evidence/risk; список checks | Уточнили уровни риска; убрали предположения вне diff/CASE; формулировки приведены к OUT-1; добавили OBS-1 в checks | Сопоставили с строками diff (app/review_service.py:20–22); проверили правила SEC-1/OUT-1/REL-1 в CASE.md; согласовали с tests_*.md |
 | P1-03 |  |  |  |  |  |  |  |  |
 
 ## Master Prompt v1
