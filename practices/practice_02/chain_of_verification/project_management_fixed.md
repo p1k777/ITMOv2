@@ -32,5 +32,5 @@ gantt
 
 - Для чего: аудит плана по CoVe, конкретизация инкрементов и критериев приёмки, генерация черновиков тестов и масок
 - Тип промпта: critique/CoVe
-- Строка в practices/practice_02/prompts.md: P2-CoVe-01
+ - Строка в practices/practice_02/prompts.md: Chain of Verification [prompts.md:15]
 - Что проверили и исправили сами: трассировка на SEC-1, API-1, REL-1, OUT-1, QA-1, OBS-1; измеримость проверок; согласование диаграммы Ганта с зависимостями
