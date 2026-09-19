@@ -10,7 +10,7 @@ practices/practice_01/project_management.md
 
 | Техника | Файл эксперимента | Изменённый файл Практики 1 | Конкретное изменение | Проверка | Что отклонили |
 |---|---|---|---|---|---|
-| Few-shot | [`few_shot/experiment.md`](few_shot/experiment.md) |  |  |  |  |
+| Few-shot | [`few_shot/experiment.md`](few_shot/experiment.md) | [`practice_02/few_shot/project_management_fixed.md`](few_shot/project_management_fixed.md) | Трассировка на SEC-1/API-1/REL-1/OUT-1/QA-1/OBS-1; измеримые проверки; согласованные зависимости и Гант; корректный раздел AI | Проверки (unit/integration/e2e/contract) сформулированы и трассируются к правилам; диаграмма соответствует зависимостям | Нефокусные улучшения вне первого сценария |
 | R.C.T.F. | [`rctf/experiment.md`](rctf/experiment.md) |  |  |  |  |
 | Chain of Verification | [`chain_of_verification/experiment.md`](chain_of_verification/experiment.md) | [`practice_02/chain_of_verification/project_management_fixed.md`](chain_of_verification/project_management_fixed.md) | Конкретизация инкрементов, проверок и зависимостей под SEC-1/API-1/REL-1/OUT-1/QA-1/OBS-1; обновление Ганта и AI-раздела | Контрактные/интеграционные тесты сформулированы; критерии приёмки соответствуют OUT-1/REL-1/SEC-1/API-1 | Отклонены нефокусные улучшения вне первого сценария |
 | Tree of Thoughts | [`tree_of_thoughts/experiment.md`](tree_of_thoughts/experiment.md) |  |  |  |  |
