@@ -1,0 +1,8 @@
+$ <mcp taskhub> tools/list
+- add_task: Add a task with optional due date and tag.
+- edit_task: Edit task fields (title, due date, tag) by id.
+- init_storage: Initialize tasks.json storage. Returns its path.
+- list_tasks: List tasks, optionally filtered by status and tag.
+- mark_done: Mark a task as done by id.
+- undo_tasks: Undo last N modifications to tasks.json (max 3).
+- validate_tasks: Validate tasks.json integrity: schema, dates, duplicate ids.

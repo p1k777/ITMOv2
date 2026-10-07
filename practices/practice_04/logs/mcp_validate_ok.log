@@ -1,0 +1,10 @@
+$ <mcp taskhub> call validate_tasks path=/var/folders/mv/97vmg8ns6_b0k1p7xrk83b7w0000gn/T/tmpxyci4ld0/ok.json
+{
+  "ok": true,
+  "issues": [],
+  "counts": {
+    "total": 1,
+    "todo": 1,
+    "done": 0
+  }
+}

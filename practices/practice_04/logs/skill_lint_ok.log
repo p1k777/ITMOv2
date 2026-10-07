@@ -1,0 +1,16 @@
+$ bash practices/practice_04/.opencode/skills/lint-check/run_lint.sh
+[lint-check] Running linter
+taskhub-lint: ok
+[lint-check] Running tests
+.......................                                                  [100%]
+=============================== warnings summary ===============================
+practices/practice_04/tests/test_cli_basic.py: 3 warnings
+practices/practice_04/tests/test_edit.py: 3 warnings
+practices/practice_04/tests/test_mcp_tools.py: 3 warnings
+practices/practice_04/tests/test_storage.py: 1 warning
+  /Users/igor/Documents/vibe/ITMOv2/practices/practice_04/src/taskhub/models.py:14: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return datetime.utcnow().strftime(ISO_FORMAT)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+23 passed, 10 warnings in 0.61s
+[lint-check] OK
