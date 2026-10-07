@@ -107,3 +107,12 @@ practices/practice_04/
 
 Примечания
 - Конкретные подключения и автоматизации будут добавлены после реализации фич.
+
+## Стиль и проверки
+
+- Правила стиля: см. `practices/practice_04/STYLE_GUIDE.md` (контракт `tasks.json`, атомарная запись и история, формат вывода CLI, модель данных/даты/UUID, разделение ответственности и типизация, ограничение длины строки 100 символов).
+- Линтер: `practices/practice_04/tools/lint.py` — проверяет инварианты STYLE_GUIDE и длину строк. Запуск: `python3 practices/practice_04/tools/lint.py`.
+- Pre-commit (локальный git-хук): `practices/practice_04/hooks/pre-commit`.
+  - Срабатывает только на ветке `pr_4_kondratyev` и только если в индексе есть изменения внутри `practices/practice_04/`.
+  - Последовательно запускает линтер и тесты (`python3 -m pytest -q`). Если `pytest` не установлен, тесты пропускаются.
+  - Подключение локально: создать симлинк `.git/hooks/pre-commit -> ../../practices/practice_04/hooks/pre-commit`.

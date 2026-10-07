@@ -86,7 +86,11 @@ class Storage:
             snap = self.history_dir / f"{ts}.json"
             shutil.copyfile(self.path, snap)
             # prune older snapshots, keep latest 3
-            snaps = sorted(self.history_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+            snaps = sorted(
+                self.history_dir.glob("*.json"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
             for old in snaps[3:]:
                 try:
                     old.unlink()
@@ -103,12 +107,20 @@ class Storage:
         """
         if steps < 1:
             raise ValueError("steps must be >= 1")
-        snaps = sorted(self.history_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+        snaps = sorted(
+            self.history_dir.glob("*.json"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
         if len(snaps) < steps:
             raise ValueError("no history to undo")
         undone = 0
         for i in range(steps):
-            snap = sorted(self.history_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+            snap = sorted(
+                self.history_dir.glob("*.json"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
             if not snap:
                 break
             latest = snap[0]
