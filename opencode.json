@@ -24,11 +24,14 @@
         "paths": [".opencode/skills"]
     },
     "mcp": {
-        "google-sheets": {
+        "playwright": {
             "type": "local",
-            "command": ["npx", "-y", "@google/mcp-sheets"],
+            "command": ["npx", "-y", "@playwright/mcp"],
             "enabled": true,
             "environment": {}
         }
+    },
+    "experimental": {
+        "mcp_timeout": 45000
     }
 }

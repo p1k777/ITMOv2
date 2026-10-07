@@ -13,13 +13,12 @@ Inputs expected
 - range: optional A1 range (e.g., A:D or A2:D100)
 
 Workflow
-1. Call the Google Sheets MCP tool:
-   - tool name: google.sheets.read
-   - input: { sheet_id, gid, range }
-   - output: rows as string[][]; first row may be headers
-2. Map each row to columns [title, due, tags]:
+1. Build a public CSV export URL (public sheets only):
+   - https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}
+2. Use Playwright MCP to download the CSV to a temp file.
+3. Parse CSV rows and map to [title, due, tags]:
    - title required; due (YYYY-MM-DD) and tags (comma-separated) optional
-3. For each row, call CLI to add a task.
+4. For each row, call CLI to add a task.
 
 CLI commands
 - If running OpenCode from repo root:
@@ -32,3 +31,4 @@ CLI commands
 Notes
 - Sheet must be public; otherwise request a public link.
 - Print a short summary: number of tasks imported.
+- Helper script (optional): .opencode/skills/gsheets-import/scripts/download_csv.sh to fetch CSV when MCP is unavailable.
