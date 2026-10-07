@@ -97,7 +97,7 @@ practices/practice_04/
 - Реализация: `Storage.edit_task()` (запись только через `save_tasks`, атомарно + snapshot) + команда в `app.py`; тесты `tests/test_edit.py` (title, due+tag, not-found, edit→undo).
 - Проверка: `pytest -q` зелёный (10 passed), `taskhub-lint: ok`.
 
-Открыто (не реализовано): команда `task validate` (целостность `tasks.json`: схема, даты, дубли id) — кандидат на собственный MCP tool; плановый контракт: печать `validation: ok` при успехе, ненулевой код при ошибке.
+Открыто (не реализовано): команда `task validate` в CLI; плановый контракт: печать `validation: ok` при успехе, ненулевой код при ошибке. Проверка целостности уже доступна как MCP tool `taskhub.validate_tasks`.
 
 Политики
 - Не вносить изменения вне `practices/practice_04/` без явных указаний.
@@ -116,6 +116,7 @@ practices/practice_04/
 Подключения (текущее состояние)
 - opencode.json (корень репозитория):
   - MCP git: локальный сервер `git-mcp-server` для помощи в разработке (status/diff/add/commit).
+  - MCP taskhub: собственный сервер `practices/practice_04/mcp/server.py` (7 tools: `init_storage`, `list_tasks`, `add_task`, `mark_done`, `edit_task`, `undo_tasks`, `validate_tasks`; thin-обёртки над `Storage`/`validate`, пути от корня воркспейса).
   - skills.paths: `.opencode/skills` (готовый `tdd-guide` для TDD-процесса) и `practices/practice_04/.opencode/skills` (проектный `lint-check` для линтера+тестов; в корне виден через симлинк `.opencode/skills/lint-check`).
 - Hook: `practices/practice_04/hooks/pre-commit` подключён локально (симлинк `.git/hooks/pre-commit`), работает на ветке `pr_4_kondratyev` при изменениях в `practices/practice_04/`.
 
