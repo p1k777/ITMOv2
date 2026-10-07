@@ -29,18 +29,18 @@
         ]
     },
     "mcp": {
-        "playwright": {
+        "git": {
             "type": "local",
             "command": [
                 "npx",
                 "-y",
-                "@playwright/mcp"
+                "git-mcp-server"
             ],
             "enabled": true,
             "environment": {}
         }
     },
     "experimental": {
-        "mcp_timeout": 45000
+        "mcp_timeout": 30000
     }
 }

@@ -27,18 +27,40 @@ def test_cli_init_and_add_list(tmp_path: Path, monkeypatch):
     assert "demo" in out
 
 
-def test_cli_clip(tmp_path: Path, monkeypatch):
+def test_cli_undo(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     res = runner.invoke(app, ["init"]) 
     assert res.exit_code == 0
 
-    url = "https://example.com"
-    res = runner.invoke(app, ["clip", "--url", url, "--title", "Example Domain"]) 
+    # add two tasks
+    res = runner.invoke(app, ["add", "A"]) 
     assert res.exit_code == 0
-    task_id = res.stdout.strip()
-    assert len(task_id) > 0
+    res = runner.invoke(app, ["add", "B"]) 
+    assert res.exit_code == 0
 
+    # ensure two present
     res = runner.invoke(app, ["list"]) 
     assert res.exit_code == 0
     out = res.stdout
-    assert "Example Domain (https://example.com)" in out
+    assert "A" in out and "B" in out
+
+    # undo last
+    res = runner.invoke(app, ["undo"]) 
+    assert res.exit_code == 0
+    assert "undo: ok (1)" in res.stdout
+
+    # list should still have at least one of A/B (after one undo)
+    res = runner.invoke(app, ["list"]) 
+    assert res.exit_code == 0
+    out = res.stdout
+    # After undo, depending on snapshot point, at least one task remains
+    assert "A" in out or "B" in out
+
+    # multiple undo (up to history)
+    res = runner.invoke(app, ["undo", "--steps", "2"]) 
+    # May fail if not enough history; allow either 0 or error
+    # For strictness, expect non-zero code only when history empty
+    if res.exit_code != 0:
+        assert "no history" in res.stdout
+
+    

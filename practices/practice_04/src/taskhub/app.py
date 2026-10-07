@@ -66,21 +66,15 @@ def done(task_id: str):
 
 
 @app.command()
-def clip(
-    url: str = typer.Option(..., "--url", help="Page URL"),
-    title: Optional[str] = typer.Option(None, "--title", help="Page title supplied by agent"),
-):
-    """Add a task from a web page by title (agent supplies title); fallback uses URL.
-
-    Agent should supply --title extracted via MCP; if omitted, we use URL as title.
-    """
+def undo(steps: int = typer.Option(1, "--steps", help="How many snapshots to undo (1-3)")):
+    """Undo last N modifications to tasks.json using internal history (max 3)."""
     st = get_storage()
-    # Agent supplies title via --title; fallback to URL
-    base_title = title or url
-    task = Task.new(title=f"{base_title} ({url})")
-    st.add_task(task)
-    typer.echo(task.id)
-
+    try:
+        undone = st.undo(steps=steps)
+    except ValueError as e:
+        typer.echo(str(e))
+        raise typer.Exit(code=1)
+    typer.echo(f"undo: ok ({undone})")
 
 if __name__ == "__main__":
     app()
