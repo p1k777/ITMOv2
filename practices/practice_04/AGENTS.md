@@ -1,0 +1,131 @@
+# Среда агента
+
+Проект на ранней стадии (сырой). Ниже — операционные инструкции для агента: где искать код, какие файлы править и какие команды запускать.
+
+Структура проекта
+
+```
+practices/practice_04/
+├── AGENTS.md                 # Карта репозитория и правила для агента (этот файл)
+├── STYLE_GUIDE.md            # Правила стиля проекта (5 правил)
+├── pyproject.toml            # Зависимости (runtime/dev), pytest конфиг
+├── README.md                 # Задание практики (из main)
+├── PROJECT_README.md         # Локальная документация TaskHub (не путать с README практики)
+├── reflection.md             # Рефлексия (домашка)
+├── .gitignore
+├── .pre-commit-config.yaml   # Локальные хуки: линтер + pytest (только practice_04)
+├── tools/
+│   └── lint.py               # Проектный линтер (инварианты STYLE_GUIDE)
+├── hooks/
+│   └── pre-commit            # Git-хук: линтер + тесты (ветка pr_4_kondratyev)
+├── .opencode/
+│   └── skills/
+│       └── lint-check/       # Локальный skill проверки (SKILL.md + run_lint.sh)
+├── src/
+│   └── taskhub/
+│       ├── app.py           # CLI (Typer): init/add/list/done/edit/undo
+│       ├── storage.py       # JSON-хранилище задач (tasks.json) + история/undo
+│       ├── models.py        # Модель Task и сериализация
+│       
+└── tests/
+    ├── conftest.py          # sys.path для src/
+    ├── test_storage.py      # unit-тесты хранилища
+    ├── test_cli_basic.py    # базовые CLI-тесты (init/add/list/undo)
+    ├── test_edit.py         # CLI-тесты команды edit (+ undo)
+```
+
+Входные точки (правьте здесь)
+- src/taskhub/app.py — CLI.
+- src/taskhub/storage.py — операции с JSON-хранилищем (tasks.json).
+- src/taskhub/models.py — модель Task, сериализация.
+- tests/** — авто‑проверки (pytest).
+
+Поиск кода (glob/grep)
+- Glob: practices/practice_04/src/**/*.py
+- Glob: practices/practice_04/tests/**/*.py
+
+Команды запуска
+- Тесты: `pytest -q` (из корня репозитория)
+- CLI локально:
+  - `export PYTHONPATH=practices/practice_04/src`
+  - `python -m taskhub.app init`
+  - `python -m taskhub.app add "Title" --tag demo`
+  - `python -m taskhub.app list`
+  - `python -m taskhub.app edit <id> --title "New"`
+  - `python -m taskhub.app undo [--steps N]`
+
+Требования к проекту
+- Общие
+  - Минимальный «тупой» CLI без сетевых вызовов и без внутренней логики MCP/плагинов.
+  - Данные в `tasks.json` в корне репозитория; запись атомарная, формат: `{ version: 1, tasks: [...] }`.
+- Команды: `init`, `add`, `list`, `done`, `edit`, `undo`.
+  - Формат вывода `list`: `<id> [status] title (due=... tags=...)` (без лишних строк/логов).
+  - Python 3.11+, зависимости: Typer для CLI, pytest для тестов. Новые зависимости не добавлять.
+  - Любые внешние операции (получение данных из сети, парсинг страниц) делает агент через MCP, не CLI.
+
+- Качество и процесс
+  - Следовать TDD: сначала тест (красный), затем минимальная реализация (зелёный), затем лёгкий рефактор при необходимости.
+  - Все тесты из `practices/practice_04/tests` должны быть зелёными (`pytest -q`).
+  - Ошибки CLI должны давать ненулевой код выхода (например, `done` по несуществующему id).
+  - Держать правки локальными для каталога `practices/practice_04/`.
+
+
+
+Шаги и проверки: Фича A — Undo last (персистентность внутри продукта)
+— Цель: откатить последние N=3 изменений `tasks.json` без использования git. Откат хранится/выполняется внутри продукта.
+
+Реализация (выполнено)
+1. Добавить внутренний журнал изменений (например, каталог `.taskhub/history/` с копиями `tasks.json` или кольцевой буфер в одном файле с метаданными времени).
+2. При каждой успешной операции записи (`add`, `done`, `edit`) делать snapshot текущего `tasks.json` до перезаписи (pre-image) — чистый rollback.
+3. Команда `undo` реализована:
+   - Без аргументов: откатить одно изменение (последний snapshot) — восстановить `tasks.json` из архивной копии.
+   - С опцией `--steps N` (опционально, по умолчанию 1, максимум 3).
+   - На успех: печатать `undo: ok (N)`; на ошибку (нет истории) — ненулевой код выхода.
+4. Тесты добавлены и проходят (`pytest -q`):
+   - `add` → `undo` → запись исчезает.
+   - `add` → `done` → `undo` → статус возвращается.
+   - Более 3 изменений → самые старые записи удаляются (кольцевой буфер).
+
+Примечание
+- MCP Git используется для помощи в разработке (коммиты/история), но сама команда `undo` работает без MCP и git.
+
+Важно
+- Не коммитить изменения автоматически. Изменения должны быть показаны на приёмке и закоммичены только по команде.
+
+Шаги и проверки: Фича B — edit (выполнено в worktree, слито)
+- Команда `edit <id> [--title ...] [--due ...] [--tag ...]`: точечно обновляет поля задачи (id неизменен), miss → ненулевой код, вывод `edited <id>`; откатывается через `undo`.
+- Реализация: `Storage.edit_task()` (запись только через `save_tasks`, атомарно + snapshot) + команда в `app.py`; тесты `tests/test_edit.py` (title, due+tag, not-found, edit→undo).
+- Проверка: `pytest -q` зелёный (10 passed), `taskhub-lint: ok`.
+
+Открыто (не реализовано): команда `task validate` в CLI; плановый контракт: печать `validation: ok` при успехе, ненулевой код при ошибке. Проверка целостности уже доступна как MCP tool `taskhub.validate_tasks`.
+
+Политики
+- Не вносить изменения вне `practices/practice_04/` без явных указаний.
+- Не добавлять внешние зависимости без согласования.
+- Сохранять минимальные и точечные правки; при добавлении команд — покрывать тестами.
+
+Ожидаемый вывод (stdout)
+- list: вывод формата `<id> [status] title (due=... tags=...)`.
+- undo: `undo: ok (N)` при успехе; при отсутствии истории — диагностическое сообщение и ненулевой код выхода.
+
+Что делает агент
+1. Читает AGENTS.md и настраивает окружение проекта.
+2. Запускает `pytest -q` после правок (через runner/hook в OpenCode) и возвращает отчёт.
+3. Выполняет команды CLI и проверяет ожидаемый вывод.
+
+Подключения (текущее состояние)
+- opencode.json (корень репозитория):
+  - MCP git: локальный сервер `git-mcp-server` для помощи в разработке (status/diff/add/commit).
+  - MCP taskhub: собственный сервер `practices/practice_04/mcp/server.py` (7 tools: `init_storage`, `list_tasks`, `add_task`, `mark_done`, `edit_task`, `undo_tasks`, `validate_tasks`; thin-обёртки над `Storage`/`validate`, пути от корня воркспейса).
+  - skills.paths: `.opencode/skills` (готовый `tdd-guide` для TDD-процесса) и `practices/practice_04/.opencode/skills` (проектный `lint-check` для линтера+тестов; в корне виден через симлинк `.opencode/skills/lint-check`).
+- Hook: `practices/practice_04/hooks/pre-commit` подключён локально (симлинк `.git/hooks/pre-commit`), работает на ветке `pr_4_kondratyev` при изменениях в `practices/practice_04/`.
+
+## Стиль и проверки
+
+- Правила стиля: см. `practices/practice_04/STYLE_GUIDE.md` (контракт `tasks.json`, атомарная запись и история, формат вывода CLI, модель данных/даты/UUID, разделение ответственности и типизация, ограничение длины строки 100 символов).
+- Линтер: `practices/practice_04/tools/lint.py` — проверяет инварианты STYLE_GUIDE и длину строк. Запуск: `python3 practices/practice_04/tools/lint.py`.
+- Pre-commit (локальный git-хук): `practices/practice_04/hooks/pre-commit`.
+  - Срабатывает только на ветке `pr_4_kondratyev` и только если в индексе есть изменения внутри `practices/practice_04/`.
+  - Последовательно запускает линтер и тесты (`python3 -m pytest -q`). Если `pytest` не установлен, тесты пропускаются.
+  - Подключение локально: создать симлинк `.git/hooks/pre-commit -> ../../practices/practice_04/hooks/pre-commit`.
+  - Для локальной проверки: убедитесь, что создано окружение `python -m venv practices/practice_04/.venv` и установлены `pytest`, `typer`.
