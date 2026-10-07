@@ -36,6 +36,15 @@
             ],
             "enabled": true,
             "environment": {}
+        },
+        "taskhub": {
+            "type": "local",
+            "command": [
+                "practices/practice_04/.venv/bin/python",
+                "practices/practice_04/mcp/server.py"
+            ],
+            "enabled": true,
+            "environment": {}
         }
     },
     "experimental": {
