@@ -66,6 +66,22 @@ def done(task_id: str):
 
 
 @app.command()
+def edit(
+    task_id: str,
+    title: Optional[str] = typer.Option(None, help="New title"),
+    due: Optional[str] = typer.Option(None, help="New due date"),
+    tag: Optional[str] = typer.Option(None, "--tag", help="New tag"),
+):
+    """Edit task fields by id."""
+    st = get_storage()
+    tags = [tag] if tag is not None else None
+    t = st.edit_task(task_id, title=title, due_date=due, tags=tags)
+    if not t:
+        raise typer.Exit(code=1)
+    typer.echo(f"edited {t.id}")
+
+
+@app.command()
 def undo(steps: int = typer.Option(1, "--steps", help="How many snapshots to undo (1-3)")):
     """Undo last N modifications to tasks.json using internal history (max 3)."""
     st = get_storage()
