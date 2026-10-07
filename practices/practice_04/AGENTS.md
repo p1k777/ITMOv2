@@ -116,3 +116,4 @@ practices/practice_04/
   - Срабатывает только на ветке `pr_4_kondratyev` и только если в индексе есть изменения внутри `practices/practice_04/`.
   - Последовательно запускает линтер и тесты (`python3 -m pytest -q`). Если `pytest` не установлен, тесты пропускаются.
   - Подключение локально: создать симлинк `.git/hooks/pre-commit -> ../../practices/practice_04/hooks/pre-commit`.
+  - Для локальной проверки: убедитесь, что создано окружение `python -m venv practices/practice_04/.venv` и установлены `pytest`, `typer`.
