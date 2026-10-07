@@ -17,11 +17,17 @@ if [ -z "$CHANGED_FILES" ]; then
   exit 0
 fi
 
-# Run linter
-python3 practices/practice_04/tools/lint.py
+# Choose Python (prefer project venv)
+PY="python3"
+if [ -x "practices/practice_04/.venv/bin/python" ]; then
+  PY="practices/practice_04/.venv/bin/python"
+fi
 
-# Run tests (quiet) if pytest is available
-if python3 - <<'PY'
+# Run linter
+"$PY" practices/practice_04/tools/lint.py
+
+# Run tests (quiet) if pytest is available in chosen Python
+if "$PY" - <<'PY'
 import importlib
 import sys
 try:
@@ -30,7 +36,7 @@ except Exception:
     sys.exit(1)
 PY
 then
-  python3 -m pytest -q
+  "$PY" -m pytest -q
 else
   echo "pre-commit: skip tests (pytest not installed)"
 fi
