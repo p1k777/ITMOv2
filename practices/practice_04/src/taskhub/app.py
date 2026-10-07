@@ -66,12 +66,18 @@ def done(task_id: str):
 
 
 @app.command()
-def clip(url: str = typer.Option(..., "--url", help="Page URL")):
-    """Add a task from a web page by title (agent supplies title); fallback uses URL."""
+def clip(
+    url: str = typer.Option(..., "--url", help="Page URL"),
+    title: Optional[str] = typer.Option(None, "--title", help="Page title supplied by agent"),
+):
+    """Add a task from a web page by title (agent supplies title); fallback uses URL.
+
+    Agent should supply --title extracted via MCP; if omitted, we use URL as title.
+    """
     st = get_storage()
-    # Agent should call `add` with a proper title, but if it didn't, we keep a simple fallback
-    title = url
-    task = Task.new(title=f"{title} ({url})")
+    # Agent supplies title via --title; fallback to URL
+    base_title = title or url
+    task = Task.new(title=f"{base_title} ({url})")
     st.add_task(task)
     typer.echo(task.id)
 

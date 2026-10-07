@@ -33,7 +33,7 @@ def test_cli_clip(tmp_path: Path, monkeypatch):
     assert res.exit_code == 0
 
     url = "https://example.com"
-    res = runner.invoke(app, ["clip", "--url", url])
+    res = runner.invoke(app, ["clip", "--url", url, "--title", "Example Domain"]) 
     assert res.exit_code == 0
     task_id = res.stdout.strip()
     assert len(task_id) > 0
@@ -41,4 +41,4 @@ def test_cli_clip(tmp_path: Path, monkeypatch):
     res = runner.invoke(app, ["list"]) 
     assert res.exit_code == 0
     out = res.stdout
-    assert "(https://example.com)" in out
+    assert "Example Domain (https://example.com)" in out

@@ -43,11 +43,13 @@ practices/practice_04/
   - `python -m taskhub.app add "Title" --tag demo`
   - `python -m taskhub.app list`
 
-Шаги и проверки: Фича A (импорт)
-1. Добавить команду импорта.
-2. Подготовить чтение данных по параметрам (источник будет подключён позже).
-3. На успех: преобразовать строки в задачи (title обязательный; due, tags — опционально). На ошибку: выводить понятное сообщение.
-4. Проверка: `pytest -q` зелёный; команда печатает количество импортированных задач.
+Шаги и проверки: Фича A (Web Clip To Task)
+1. Извлечь title страницы через Playwright MCP (navigate + document.title). При ошибке — остановиться.
+2. Сформировать строку: "<title> (<url>)".
+3. Добавить задачу через CLI:
+   - export PYTHONPATH=practices/practice_04/src
+   - python -m taskhub.app clip --url <url> --title "<title>"
+4. Проверка: `pytest -q` зелёный; `list` содержит "<title> (<url>)".
 
 Шаги и проверки: Фича B (валидация и линт)
 1. Добавить команду `task validate`, проверяющую целостность `tasks.json` (схема, даты, дубли id).
