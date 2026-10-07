@@ -19,4 +19,16 @@
             }
         }
     }
+,
+    "skills": {
+        "paths": [".opencode/skills"]
+    },
+    "mcp": {
+        "playwright": {
+            "type": "local",
+            "command": ["npx", "-y", "@playwright/mcp"],
+            "enabled": true,
+            "environment": {}
+        }
+    }
 }
