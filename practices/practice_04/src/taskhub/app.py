@@ -29,10 +29,15 @@ def init(root: Optional[str] = typer.Option(None, help="Project root for storage
 
 
 @app.command()
-def add(title: str, due: Optional[str] = typer.Option(None), tag: List[str] = typer.Option([], "--tag")):
+def add(
+    title: str,
+    due: Optional[str] = typer.Option(None),
+    tag: Optional[str] = typer.Option(None, "--tag"),
+):
     """Add a new task with optional due date and tags."""
     st = get_storage()
-    task = Task.new(title=title, due_date=due, tags=list(tag))
+    tags = [tag] if tag else []
+    task = Task.new(title=title, due_date=due, tags=tags)
     st.add_task(task)
     typer.echo(task.id)
 
