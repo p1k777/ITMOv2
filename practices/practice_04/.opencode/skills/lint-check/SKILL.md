@@ -1,3 +1,8 @@
+---
+name: lint-check
+description: Run TaskHub project linter and pytest for practices/practice_04. Trigger on keywords: lint, style guide, pre-commit, validation.
+---
+
 # Skill: lint-check (practice_04)
 
 Purpose
