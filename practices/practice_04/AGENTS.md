@@ -1,20 +1,29 @@
 # Среда агента
 
-Проект на ранней стадии (сырой). Ниже — операционные инструкции для агента: где искать код, какие файлы править и какие команды запускать. Подключения к внешним источникам и автоматизации будут добавлены позже.
+Проект на ранней стадии (сырой). Ниже — операционные инструкции для агента: где искать код, какие файлы править и какие команды запускать.
 
 Структура проекта
 
 ```
 practices/practice_04/
 ├── AGENTS.md                 # Карта репозитория и правила для агента (этот файл)
+├── STYLE_GUIDE.md            # Правила стиля проекта (5 правил)
 ├── pyproject.toml            # Зависимости (runtime/dev), pytest конфиг
 ├── README.md                 # Задание практики (из main)
 ├── PROJECT_README.md         # Локальная документация TaskHub (не путать с README практики)
 ├── reflection.md             # Рефлексия (домашка)
 ├── .gitignore
+├── .pre-commit-config.yaml   # Локальные хуки: линтер + pytest (только practice_04)
+├── tools/
+│   └── lint.py               # Проектный линтер (инварианты STYLE_GUIDE)
+├── hooks/
+│   └── pre-commit            # Git-хук: линтер + тесты (ветка pr_4_kondratyev)
+├── .opencode/
+│   └── skills/
+│       └── lint-check/       # Локальный skill проверки (SKILL.md + run_lint.sh)
 ├── src/
 │   └── taskhub/
-│       ├── app.py           # CLI (Typer): init/add/list/done/undo
+│       ├── app.py           # CLI (Typer): init/add/list/done/edit/undo
 │       ├── storage.py       # JSON-хранилище задач (tasks.json) + история/undo
 │       ├── models.py        # Модель Task и сериализация
 │       
@@ -22,6 +31,7 @@ practices/practice_04/
     ├── conftest.py          # sys.path для src/
     ├── test_storage.py      # unit-тесты хранилища
     ├── test_cli_basic.py    # базовые CLI-тесты (init/add/list/undo)
+    ├── test_edit.py         # CLI-тесты команды edit (+ undo)
 ```
 
 Входные точки (правьте здесь)
@@ -47,7 +57,7 @@ practices/practice_04/
 - Общие
   - Минимальный «тупой» CLI без сетевых вызовов и без внутренней логики MCP/плагинов.
   - Данные в `tasks.json` в корне репозитория; запись атомарная, формат: `{ version: 1, tasks: [...] }`.
-- Команды: `init`, `add`, `list`, `done`, `undo`.
+- Команды: `init`, `add`, `list`, `done`, `edit`, `undo`.
   - Формат вывода `list`: `<id> [status] title (due=... tags=...)` (без лишних строк/логов).
   - Python 3.11+, зависимости: Typer для CLI, pytest для тестов. Новые зависимости не добавлять.
   - Любые внешние операции (получение данных из сети, парсинг страниц) делает агент через MCP, не CLI.
@@ -81,10 +91,12 @@ practices/practice_04/
 Важно
 - Не коммитить изменения автоматически. Изменения должны быть показаны на приёмке и закоммичены только по команде.
 
-Шаги и проверки: Фича B (валидация и линт)
-1. Добавить команду `task validate`, проверяющую целостность `tasks.json` (схема, даты, дубли id).
-2. Позже добавить автоматизации (например, pre-commit), чтобы запускать форматирование, тесты и `task validate`.
-3. Проверка: `pytest -q` зелёный; `task validate` печатает `validation: ok` при успехе и ненулевой код выхода при ошибке.
+Шаги и проверки: Фича B — edit (выполнено в worktree, слито)
+- Команда `edit <id> [--title ...] [--due ...] [--tag ...]`: точечно обновляет поля задачи (id неизменен), miss → ненулевой код, вывод `edited <id>`; откатывается через `undo`.
+- Реализация: `Storage.edit_task()` (запись только через `save_tasks`, атомарно + snapshot) + команда в `app.py`; тесты `tests/test_edit.py` (title, due+tag, not-found, edit→undo).
+- Проверка: `pytest -q` зелёный (10 passed), `taskhub-lint: ok`.
+
+Открыто: команда `task validate` (целостность `tasks.json`: схема, даты, дубли id) — кандидат на собственный MCP tool; контракт: печать `validation: ok` при успехе, ненулевой код при ошибке.
 
 Политики
 - Не вносить изменения вне `practices/practice_04/` без явных указаний.
@@ -103,10 +115,8 @@ practices/practice_04/
 Подключения (текущее состояние)
 - opencode.json (корень репозитория):
   - MCP git: локальный сервер `git-mcp-server` для помощи в разработке (status/diff/add/commit).
-  - skills.paths: `.opencode/skills` (подключён навык tdd-guide для TDD-процесса в practice_04).
-
-Примечания
-- Конкретные подключения и автоматизации будут добавлены после реализации фич.
+  - skills.paths: `.opencode/skills` (готовый `tdd-guide` для TDD-процесса) и `practices/practice_04/.opencode/skills` (проектный `lint-check` для линтера+тестов; в корне виден через симлинк `.opencode/skills/lint-check`).
+- Hook: `practices/practice_04/hooks/pre-commit` подключён локально (симлинк `.git/hooks/pre-commit`), работает на ветке `pr_4_kondratyev` при изменениях в `practices/practice_04/`.
 
 ## Стиль и проверки
 
