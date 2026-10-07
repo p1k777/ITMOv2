@@ -24,9 +24,9 @@
         "paths": [".opencode/skills"]
     },
     "mcp": {
-        "playwright": {
+        "google-sheets": {
             "type": "local",
-            "command": ["npx", "-y", "@playwright/mcp"],
+            "command": ["npx", "-y", "@google/mcp-sheets"],
             "enabled": true,
             "environment": {}
         }
