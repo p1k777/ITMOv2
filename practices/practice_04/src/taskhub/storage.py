@@ -75,6 +75,30 @@ class Storage:
             self.save_tasks(tasks)
         return found
 
+    def edit_task(
+        self,
+        task_id: str,
+        title: Optional[str] = None,
+        due_date: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+    ) -> Optional[Task]:
+        data = self.load()
+        tasks = [Task(**t) for t in data.get("tasks", [])]
+        found: Optional[Task] = None
+        for t in tasks:
+            if t.id == task_id:
+                if title is not None:
+                    t.title = title
+                if due_date is not None:
+                    t.due_date = due_date
+                if tags is not None:
+                    t.tags = tags
+                found = t
+                break
+        if found:
+            self.save_tasks(tasks)
+        return found
+
     # ---- history / undo ----
     def _snapshot_current(self) -> None:
         """Save a pre-image of tasks.json into the history ring (max 3)."""
