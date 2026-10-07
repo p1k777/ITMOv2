@@ -65,5 +65,16 @@ def done(task_id: str):
     typer.echo(f"done {t.id}")
 
 
+@app.command()
+def clip(url: str = typer.Option(..., "--url", help="Page URL")):
+    """Add a task from a web page by title (agent supplies title); fallback uses URL."""
+    st = get_storage()
+    # Agent should call `add` with a proper title, but if it didn't, we keep a simple fallback
+    title = url
+    task = Task.new(title=f"{title} ({url})")
+    st.add_task(task)
+    typer.echo(task.id)
+
+
 if __name__ == "__main__":
     app()

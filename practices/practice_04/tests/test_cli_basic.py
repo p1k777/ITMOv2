@@ -25,3 +25,20 @@ def test_cli_init_and_add_list(tmp_path: Path, monkeypatch):
     out = result.stdout
     assert "Hello" in out
     assert "demo" in out
+
+
+def test_cli_clip(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    res = runner.invoke(app, ["init"]) 
+    assert res.exit_code == 0
+
+    url = "https://example.com"
+    res = runner.invoke(app, ["clip", "--url", url])
+    assert res.exit_code == 0
+    task_id = res.stdout.strip()
+    assert len(task_id) > 0
+
+    res = runner.invoke(app, ["list"]) 
+    assert res.exit_code == 0
+    out = res.stdout
+    assert "(https://example.com)" in out
