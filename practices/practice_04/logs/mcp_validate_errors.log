@@ -1,0 +1,19 @@
+$ <mcp taskhub> call validate_tasks path=/var/folders/mv/97vmg8ns6_b0k1p7xrk83b7w0000gn/T/tmpxyci4ld0/bad.json
+{
+  "ok": false,
+  "issues": [
+    "tasks[1] invalid status: 'later'",
+    "invalid due_date: 'soon'",
+    "duplicate id: a1"
+  ],
+  "counts": {
+    "total": 2,
+    "todo": 1,
+    "done": 0
+  }
+}
+$ <mcp taskhub> call validate_tasks path=/var/folders/mv/97vmg8ns6_b0k1p7xrk83b7w0000gn/T/tmpkg_q7q7p/missing.json
+is_error=True
+Error executing tool validate_tasks
+$ python -c validate_file('/tmp/missing.json')  # server-side cause
+FileNotFoundError: not found: /tmp/missing.json (run init?)

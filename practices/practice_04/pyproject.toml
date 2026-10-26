@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taskhub"
+version = "0.0.1"
+description = "Minimal, extensible CLI for tasks"
+requires-python = ">=3.11"
+dependencies = [
+    "typer>=0.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7",
+    "typer[all]",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["practices/practice_04/tests"]
+
+[tool.ruff]
+line-length = 100

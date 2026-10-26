@@ -1,0 +1,16 @@
+repos:
+  - repo: local
+    hooks:
+      - id: taskhub-lint
+        name: taskhub-lint
+        entry: python3 practices/practice_04/tools/lint.py
+        language: system
+        pass_filenames: false
+        types: [python]
+        files: ^practices/practice_04/
+      - id: pytest-practice-04
+        name: pytest -q (practice_04)
+        entry: python3 -m pytest -q
+        language: system
+        pass_filenames: false
+        files: ^practices/practice_04/
