@@ -46,13 +46,22 @@ class Storage:
         data = {"version": 1, "tasks": [t.to_dict() for t in tasks]}
         self._write(data)
 
-    def list_tasks(self, status: Optional[str] = None, tag: Optional[str] = None) -> List[Task]:
+    def list_tasks(
+        self,
+        status: Optional[str] = None,
+        tag: Optional[str] = None,
+        search: Optional[str] = None,
+    ) -> List[Task]:
+        """List tasks; search is a casefolded title substring, disabled by None or empty."""
         data = self.load()
         tasks = [Task(**t) for t in data.get("tasks", [])]
         if status:
             tasks = [t for t in tasks if t.status == status]
         if tag:
             tasks = [t for t in tasks if tag in t.tags]
+        if search:
+            query = search.casefold()
+            tasks = [t for t in tasks if query in t.title.casefold()]
         return tasks
 
     def add_task(self, task: Task) -> Task:
