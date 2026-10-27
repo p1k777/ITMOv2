@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "tasks": [
+    {
+      "id": "b896dcc8-e692-4016-8a4e-996902a8a2d9",
+      "title": "3l45io3nhgio43n",
+      "status": "todo",
+      "created_at": "2026-10-27T11:08:42.385594Z",
+      "due_date": null,
+      "tags": [
+        "cpp"
+      ]
+    }
+  ]
+}
