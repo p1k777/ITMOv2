@@ -1,11 +1,29 @@
+# Python
 __pycache__/
-.pytest_cache/
 *.pyc
 *.pyo
 *.pyd
-*.egg-info/
-dist/
-build/
+.Python
+
+# Virtual environments
 .venv/
-# Evidence logs for review (see logs/)
-!logs/*.log
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+
+# Logs and databases
+*.log
+*.sqlite
+*.db
+
+# Temporary files
+*.tmp
+*.swp
+*.bak
+
+# OS generated files
+.DS_Store
+Thumbs.db
