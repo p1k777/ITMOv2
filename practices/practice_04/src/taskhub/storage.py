@@ -51,8 +51,24 @@ class Storage:
         status: Optional[str] = None,
         tag: Optional[str] = None,
         search: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_order: Optional[str] = "asc",
     ) -> List[Task]:
-        """List tasks; search is a casefolded title substring, disabled by None or empty."""
+        """List tasks; search is a casefolded title substring, disabled by None or empty.
+
+        Args:
+            status: Filter by status ("todo" or "done").
+            tag: Filter by tag.
+            search: Case-insensitive title substring search.
+            sort_by: Sort field ("title", "status", "due_date", "created_at", "tags") or None.
+            sort_order: Sort direction ("asc" or "desc"), default "asc".
+
+        Returns:
+            List of tasks after filtering and optional sorting.
+
+        Raises:
+            ValueError: If sort_by or sort_order has an invalid value.
+        """
         data = self.load()
         tasks = [Task(**t) for t in data.get("tasks", [])]
         if status:
@@ -62,6 +78,45 @@ class Storage:
         if search:
             query = search.casefold()
             tasks = [t for t in tasks if query in t.title.casefold()]
+
+        # Validate sort parameters
+        valid_sort_by = {"title", "status", "due_date", "created_at", "tags", None}
+        if sort_by not in valid_sort_by:
+            raise ValueError(
+                f"Invalid sort_by: {sort_by}. "
+                f"Must be one of: title, status, due_date, created_at, tags, or None."
+            )
+        if sort_order not in ("asc", "desc"):
+            raise ValueError(
+                f"Invalid sort_order: {sort_order}. Must be 'asc' or 'desc'."
+            )
+
+        # Apply sorting
+        if sort_by is not None:
+            reverse = sort_order == "desc"
+            if sort_by == "title":
+                tasks = sorted(tasks, key=lambda t: t.title.casefold(), reverse=reverse)
+            elif sort_by == "status":
+                tasks = sorted(
+                    tasks,
+                    key=lambda t: 0 if t.status == "todo" else 1,
+                    reverse=reverse,
+                )
+            elif sort_by == "due_date":
+                tasks = sorted(
+                    tasks,
+                    key=lambda t: (t.due_date is None, t.due_date or ""),
+                    reverse=reverse,
+                )
+            elif sort_by == "created_at":
+                tasks = sorted(tasks, key=lambda t: t.created_at, reverse=reverse)
+            elif sort_by == "tags":
+                tasks = sorted(
+                    tasks,
+                    key=lambda t: (not t.tags, t.tags[0].casefold() if t.tags else ""),
+                    reverse=reverse,
+                )
+
         return tasks
 
     def add_task(self, task: Task) -> Task:

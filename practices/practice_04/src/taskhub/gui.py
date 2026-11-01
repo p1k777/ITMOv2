@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 from typing import Callable, List, Optional
 
-from .models import ISO_FORMAT, Task
+from .models import ISO_FORMAT, Task, SortState
 from .storage import Storage
 from .validate import validate_file
 
@@ -28,9 +28,14 @@ class TaskController:
         status: Optional[str] = None,
         tag: Optional[str] = None,
         search: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_order: str = "asc",
     ) -> List[Task]:
         """Return the current storage-order selection for the given filters."""
-        return self.storage.list_tasks(status=status, tag=tag, search=search)
+        return self.storage.list_tasks(
+            status=status, tag=tag, search=search,
+            sort_by=sort_by, sort_order=sort_order,
+        )
 
     def add_task(
         self,
@@ -223,6 +228,13 @@ class TaskForm:
 class TaskHubWindow:
     """Single-window Tk adapter for browsing and changing TaskHub data."""
 
+    COLUMN_TO_FIELD: dict[str, str] = {
+        "title": "title",
+        "status": "status",
+        "due": "due_date",
+        "tags": "tags",
+    }
+
     def __init__(self, root, controller: TaskController):
         self.tk, self.ttk = _load_tk()
         self.root = root
@@ -232,6 +244,7 @@ class TaskHubWindow:
             None,
             None,
         )
+        self.sort_state: SortState = SortState()
         self.tasks: dict[str, Task] = {}
         self.loaded = False
         self.current_form: Optional[TaskForm] = None
@@ -289,13 +302,18 @@ class TaskHubWindow:
         table.rowconfigure(0, weight=1)
         columns = ("title", "status", "due", "tags")
         self.tree = self.ttk.Treeview(
-            table, columns=columns, show="headings", selectmode="browse"
+            table, columns=columns, show="headings", selectmode="browse",
+            cursor="hand2",
         )
         headings = ("Название", "Статус", "Срок", "Теги")
         widths = (280, 80, 210, 180)
         for column, heading, width in zip(columns, headings, widths):
             self.tree.heading(column, text=heading)
             self.tree.column(column, width=width, minwidth=60)
+            self.tree.heading(
+                column,
+                command=lambda c=column: self._on_heading_click(c),
+            )
         scrollbar = self.ttk.Scrollbar(table, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=scrollbar.set)
         self.tree.bind("<<TreeviewSelect>>", self._sync_actions)
@@ -358,8 +376,12 @@ class TaskHubWindow:
 
     def refresh(self) -> bool:
         status, tag, search = self.active_filters
+        sort_by, sort_order = self.sort_state
         try:
-            tasks = self.controller.list_tasks(status=status, tag=tag, search=search)
+            tasks = self.controller.list_tasks(
+                status=status, tag=tag, search=search,
+                sort_by=sort_by, sort_order=sort_order,
+            )
         except (OSError, ValueError, TypeError, KeyError) as error:
             self.loaded = False
             self._replace_rows([])
@@ -367,6 +389,7 @@ class TaskHubWindow:
             return False
         self.loaded = True
         self._replace_rows(tasks)
+        self._update_sort_indicators(sort_by, sort_order)
         if tasks:
             self.status_var.set(f"Показано задач: {len(tasks)}")
         elif any(value is not None for value in self.active_filters):
@@ -391,6 +414,36 @@ class TaskHubWindow:
                 ),
             )
         self._sync_actions()
+
+    def _on_heading_click(self, column: str) -> None:
+        """Handle heading click: cyclic toggle asc → desc → None (reset)."""
+        field = self.COLUMN_TO_FIELD.get(column, column)
+
+        if self.sort_state.sort_by == field:
+            if self.sort_state.sort_order == "asc":
+                self.sort_state = SortState(field, "desc")
+            elif self.sort_state.sort_order == "desc":
+                self.sort_state = SortState(None, "asc")
+            else:
+                self.sort_state = SortState(field, "asc")
+        else:
+            self.sort_state = SortState(field, "asc")
+
+        self.refresh()
+
+    def _update_sort_indicators(self, sort_by: Optional[str], sort_order: Optional[str]) -> None:
+        """Update heading text with arrows for active sort column."""
+        columns = ("title", "status", "due", "tags")
+        headings = ("Название", "Статус", "Срок", "Теги")
+
+        for column, heading in zip(columns, headings):
+            if sort_by == column:
+                if sort_order == "asc":
+                    self.tree.heading(column, text=f"{heading} ▲")
+                else:
+                    self.tree.heading(column, text=f"{heading} ▼")
+            else:
+                self.tree.heading(column, text=heading)
 
     def _selected_task(self) -> Optional[Task]:
         selection = self.tree.selection()
