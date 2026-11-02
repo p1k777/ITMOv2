@@ -24,6 +24,7 @@ practices/practice_04/
 ├── src/
 │   └── taskhub/
 │       ├── app.py           # CLI (Typer): init/add/list/done/edit/undo
+│       ├── gui.py           # Desktop UI (Tkinter/ttk) поверх модели и Storage
 │       ├── storage.py       # JSON-хранилище задач (tasks.json) + история/undo
 │       ├── models.py        # Модель Task и сериализация
 │       
@@ -36,6 +37,7 @@ practices/practice_04/
 
 Входные точки (правьте здесь)
 - src/taskhub/app.py — CLI.
+- src/taskhub/gui.py — отдельный desktop UI на Tkinter/ttk.
 - src/taskhub/storage.py — операции с JSON-хранилищем (tasks.json).
 - src/taskhub/models.py — модель Task, сериализация.
 - tests/** — авто‑проверки (pytest).
@@ -53,10 +55,13 @@ practices/practice_04/
   - `python -m taskhub.app list`
   - `python -m taskhub.app edit <id> --title "New"`
   - `python -m taskhub.app undo [--steps N]`
+- Desktop UI: `python -m taskhub.gui` (требуется Python с Tcl/Tk).
 
 Требования к проекту
 - Общие
   - Минимальный «тупой» CLI без сетевых вызовов и без внутренней логики MCP/плагинов.
+  - Отдельный Tk UI в `gui.py` использует существующие модель и Storage, не меняя
+    CLI-контракты, формат данных и запрет сетевых вызовов.
   - Данные в `tasks.json` в корне репозитория; запись атомарная, формат: `{ version: 1, tasks: [...] }`.
 - Команды: `init`, `add`, `list`, `done`, `edit`, `undo`.
   - Формат вывода `list`: `<id> [status] title (due=... tags=...)` (без лишних строк/логов).

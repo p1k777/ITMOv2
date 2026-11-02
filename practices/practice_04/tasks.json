@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "tasks": [
+    {
+      "id": "b896dcc8-e692-4016-8a4e-996902a8a2d9",
+      "title": "3l45io3nhgio43n",
+      "status": "todo",
+      "created_at": "2026-10-27T11:08:42.385594Z",
+      "due_date": null,
+      "tags": [
+        "cpp"
+      ]
+    },
+    {
+      "id": "78ec0dea-668a-4405-ae8c-20de6ecd44d3",
+      "title": "igor",
+      "status": "todo",
+      "created_at": "2026-10-27T11:09:09.253989Z",
+      "due_date": null,
+      "tags": []
+    }
+  ]
+}

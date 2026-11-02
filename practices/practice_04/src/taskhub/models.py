@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, NamedTuple
 import uuid
 
 
@@ -29,3 +29,8 @@ class Task:
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+
+class SortState(NamedTuple):
+    sort_by: Optional[str] = None
+    sort_order: str = "asc"

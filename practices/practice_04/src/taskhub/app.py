@@ -46,10 +46,11 @@ def add(
 def list(
     status: Optional[str] = typer.Option(None, help="Filter by status: todo|done"),
     tag: Optional[str] = typer.Option(None, help="Filter by tag"),
+    search: Optional[str] = typer.Option(None, help="Case-insensitive title substring"),
 ):
-    """List tasks, optionally filtered."""
+    """List tasks, optionally filtered by status, tag and title substring."""
     st = get_storage()
-    tasks = st.list_tasks(status=status, tag=tag)
+    tasks = st.list_tasks(status=status, tag=tag, search=search)
     for t in tasks:
         tags = ",".join(t.tags)
         typer.echo(f"{t.id} [{t.status}] {t.title} (due={t.due_date or '-'} tags={tags})")
