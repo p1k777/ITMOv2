@@ -74,6 +74,210 @@ class ShopTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("TEST_ALICE", result["content"])
 
+    # --- Security regression tests for REPORT_01 vulnerabilities ---
+
+    def test_sql_injection_profile_blocked(self):
+        """SQLi в /profile не должна возвращать чужие данные."""
+        auth = self.login()
+        # Попытка UNION-инъекции блокируется проверкой прав + параметризацией
+        status, _ = self.request("GET", "/profile?id=1 UNION SELECT 1, name, email, address FROM profiles--", headers=auth)
+        self.assertEqual(status, 403)
+        # Легитимный запрос работает
+        status, result = self.request("GET", "/profile?id=1", headers=auth)
+        self.assertEqual(status, 200)
+        self.assertEqual(result[0]["name"], "TEST_ALICE")
+
+    def test_sql_injection_search_blocked(self):
+        """SQLi в /search не должна возвращать чужие профили."""
+        auth = self.login()
+        # Инъекция не возвращает чужие профили (параметризованный запрос)
+        status, result = self.request("GET", "/search?q=' OR '1'='1", headers=auth)
+        self.assertEqual(status, 200)
+        self.assertEqual(len(result), 0)
+        # Легитимный поиск работает
+        status, result = self.request("GET", "/search?q=TEST_ALICE", headers=auth)
+        self.assertEqual(status, 200)
+        self.assertEqual(len(result), 1)
+
+    def test_idor_profile_blocked(self):
+        """Клиент не может читать чужой профиль (IDOR)."""
+        alice = self.login("alice", "learn-alice")
+        bob = self.login("bob", "learn-bob")
+        # Alice пытается прочитать профиль Bob
+        status, _ = self.request("GET", "/profile?id=2", headers=alice)
+        self.assertEqual(status, 403)
+        # Bob читает свой профиль — OK
+        status, profile = self.request("GET", "/profile?id=2", headers=bob)
+        self.assertEqual(status, 200)
+        self.assertEqual(profile[0]["name"], "TEST_BOB")
+
+    def test_idor_staff_can_read_all_profiles(self):
+        """Сотрудник может читать любые профили."""
+        staff = self.login("staff", "learn-staff")
+        status, profiles = self.request("GET", "/profile?id=2", headers=staff)
+        self.assertEqual(status, 200)
+        self.assertEqual(profiles[0]["name"], "TEST_BOB")
+
+    def test_admin_export_requires_staff_session_not_header(self):
+        """Экспорт профилей требует роль staff из сессии, а не заголовка X-Role."""
+        alice = self.login("alice", "learn-alice")
+        # Подмена заголовка X-Role не должна дать права staff
+        status, _ = self.request("GET", "/admin/export", headers={**alice, "X-Role": "staff"})
+        self.assertEqual(status, 403)
+        # Реальный staff получает доступ
+        staff = self.login("staff", "learn-staff")
+        status, profiles = self.request("GET", "/admin/export", headers=staff)
+        self.assertEqual(status, 200)
+        self.assertEqual(len(profiles), 2)
+
+    def test_files_user_isolation(self):
+        """Клиент может читать только свои файлы."""
+        alice = self.login("alice", "learn-alice")
+        bob = self.login("bob", "learn-bob")
+        # Alice не может читать файл Bob
+        status, _ = self.request("GET", "/files?user=bob&path=receipt.txt", headers=alice)
+        self.assertEqual(status, 403)
+        # Alice читает свой файл — OK
+        status, receipt = self.request("GET", "/files?user=alice&path=receipt.txt", headers=alice)
+        self.assertEqual(status, 200)
+        self.assertIn("TEST_ALICE", receipt["content"])
+
+    def test_files_private_inaccessible(self):
+        """Закрытые файлы (private/) недоступны клиентам."""
+        alice = self.login("alice", "learn-alice")
+        staff = self.login("staff", "learn-staff")
+        # Клиент не может читать private/operator-note.txt (path traversal заблокирован)
+        status, _ = self.request("GET", "/files?user=alice&path=../../private/operator-note.txt", headers=alice)
+        self.assertEqual(status, 400)
+        # Staff может
+        status, content = self.request("GET", "/files?user=alice&path=../../private/operator-note.txt", headers=staff)
+        self.assertEqual(status, 200)
+        self.assertIn("TEST_ONLY_OPERATOR_SECRET", content["content"])
+
+    def test_debug_logs_staff_only(self):
+        """Эндпоинт /debug/logs доступен только staff."""
+        alice = self.login("alice", "learn-alice")
+        status, _ = self.request("GET", "/debug/logs", headers=alice)
+        self.assertEqual(status, 403)
+        staff = self.login("staff", "learn-staff")
+        status, logs = self.request("GET", "/debug/logs", headers=staff)
+        self.assertEqual(status, 200)
+        self.assertIsInstance(logs, list)
+
+    def test_reviews_xss_escaped(self):
+        """Текст отзыва экранируется, XSS не выполняется."""
+        auth = self.login()
+        self.request("POST", "/reviews", {
+            "product": "chair",
+            "text": "<script>alert('XSS')</script>"
+        }, auth)
+        status, html = self.request("GET", "/reviews/view", headers=auth)
+        self.assertEqual(status, 200)
+        self.assertNotIn("<script>", html)
+        self.assertIn("&lt;script&gt;", html)
+
+    def test_assistant_execute_requires_auth(self):
+        """Инструменты ассистента требуют валидного токена."""
+        status, _ = self.request("POST", "/assistant/execute", {
+            "decision": {"tool": "read_file", "arguments": {"path": "files/alice/receipt.txt"}}
+        })
+        self.assertEqual(status, 401)
+
+    def test_assistant_execute_client_read_only_own_files(self):
+        """Клиент может читать только свои файлы через read_file."""
+        alice = self.login("alice", "learn-alice")
+        bob = self.login("bob", "learn-bob")
+        # Alice читает свой файл — OK
+        status, content = self.request("POST", "/assistant/execute", {
+            "decision": {"tool": "read_file", "arguments": {"path": "files/alice/receipt.txt"}}
+        }, alice)
+        self.assertEqual(status, 200)
+        self.assertIn("TEST_ALICE", content["content"])
+        # Alice не может читать файл Bob
+        status, _ = self.request("POST", "/assistant/execute", {
+            "decision": {"tool": "read_file", "arguments": {"path": "files/bob/receipt.txt"}}
+        }, alice)
+        self.assertEqual(status, 403)
+        # Staff может читать любой файл
+        staff = self.login("staff", "learn-staff")
+        status, content = self.request("POST", "/assistant/execute", {
+            "decision": {"tool": "read_file", "arguments": {"path": "files/bob/receipt.txt"}}
+        }, staff)
+        self.assertEqual(status, 200)
+
+    def test_assistant_execute_export_profiles_staff_only(self):
+        """export_profiles доступен только staff."""
+        alice = self.login("alice", "learn-alice")
+        status, _ = self.request("POST", "/assistant/execute", {
+            "decision": {"tool": "export_profiles", "arguments": {}}
+        }, alice)
+        self.assertEqual(status, 403)
+        staff = self.login("staff", "learn-staff")
+        status, profiles = self.request("POST", "/assistant/execute", {
+            "decision": {"tool": "export_profiles", "arguments": {}}
+        }, staff)
+        self.assertEqual(status, 200)
+        self.assertEqual(len(profiles), 2)
+
+    def test_assistant_execute_delete_tree_staff_only(self):
+        """delete_tree доступен только staff."""
+        alice = self.login("alice", "learn-alice")
+        status, _ = self.request("POST", "/assistant/execute", {
+            "decision": {"tool": "delete_tree", "arguments": {"path": "files/alice/receipt.txt"}}
+        }, alice)
+        self.assertEqual(status, 403)
+
+    def test_assistant_context_order_ownership(self):
+        """Клиент видит только свои заказы в /assistant/context."""
+        alice = self.login("alice", "learn-alice")
+        bob = self.login("bob", "learn-bob")
+        # Alice пытается увидеть заказ Bob (id=2)
+        status, _ = self.request("GET", "/assistant/context?order_id=2", headers=alice)
+        self.assertEqual(status, 403)
+        # Alice видит свой заказ (id=1)
+        status, context = self.request("GET", "/assistant/context?order_id=1", headers=alice)
+        self.assertEqual(status, 200)
+        self.assertIn("chair", context["prompt"])
+        # Staff видит любой заказ
+        staff = self.login("staff", "learn-staff")
+        status, _ = self.request("GET", "/assistant/context?order_id=2", headers=staff)
+        self.assertEqual(status, 200)
+
+    def test_orders_get_own_only(self):
+        """GET /orders возвращает только заказы текущего пользователя."""
+        alice = self.login("alice", "learn-alice")
+        bob = self.login("bob", "learn-bob")
+        # Создаём заказ для Bob
+        self.request("POST", "/orders", {"product": "lamp"}, bob)
+        # Alice видит только свои заказы
+        status, orders = self.request("GET", "/orders", headers=alice)
+        self.assertEqual(status, 200)
+        self.assertTrue(all(o["owner"] == 1 for o in orders))
+        # Staff видит все
+        staff = self.login("staff", "learn-staff")
+        status, orders = self.request("GET", "/orders", headers=staff)
+        self.assertEqual(status, 200)
+        self.assertEqual(len(orders), 3)  # 2 исходных + 1 новый от Bob
+
+    def test_orders_get_requires_auth(self):
+        """GET /orders требует аутентификации."""
+        status, _ = self.request("GET", "/orders")
+        self.assertEqual(status, 401)
+
+    def test_search_client_sees_only_own_profile(self):
+        """Клиент в /search видит только свой профиль."""
+        alice = self.login("alice", "learn-alice")
+        bob = self.login("bob", "learn-bob")
+        # Alice ищет TEST_BOB — не должна найти
+        status, result = self.request("GET", "/search?q=TEST_BOB", headers=alice)
+        self.assertEqual(status, 200)
+        self.assertEqual(len(result), 0)
+        # Alice ищет себя — должна найти
+        status, result = self.request("GET", "/search?q=TEST_ALICE", headers=alice)
+        self.assertEqual(status, 200)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["name"], "TEST_ALICE")
+
 
 class SandboxTest(unittest.TestCase):
     def setUp(self):

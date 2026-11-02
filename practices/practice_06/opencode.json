@@ -9,7 +9,10 @@
       "permission": {
         "*": "deny",
         "read": {
-          "*": "deny",
+          "*": "allow",
+        },
+        "write": {
+          "lab/REPORT_02.md": "allow",
         }
       }
     },

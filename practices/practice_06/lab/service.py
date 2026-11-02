@@ -1,6 +1,7 @@
 """Deliberately vulnerable local shop. All identities and data are synthetic."""
 
 import argparse
+import html
 import json
 import sqlite3
 import threading
@@ -35,8 +36,8 @@ class Shop:
         self.reviews = []
         self.logs = []
 
-    def rows(self, query):
-        return [dict(row) for row in self.db.execute(query)]
+    def rows(self, query, params=()):
+        return [dict(row) for row in self.db.execute(query, params)]
 
     def dispatch(self, method, target, body, headers):
         url = urlsplit(target)
@@ -51,14 +52,33 @@ class Shop:
             if not account or body.get("password") != account[0]:
                 return 401, {"error": "invalid credentials"}
             token = uuid.uuid4().hex
-            self.sessions[token] = {"id": account[1], "role": account[2]}
+            self.sessions[token] = {"id": account[1], "role": account[2], "username": body.get("username")}
             return 200, {"token": token}
         if method == "GET" and url.path == "/profile":
-            return 200, self.rows(f"SELECT * FROM profiles WHERE id = {query.get('id', '1')}")
+            session = self.sessions.get(headers.get("X-Token"))
+            if not session:
+                return 401, {"error": "login required"}
+            requested_id = query.get("id")
+            if requested_id is None:
+                return 400, {"error": "id parameter required"}
+            if session["role"] != "staff" and str(session["id"]) != str(requested_id):
+                return 403, {"error": "access denied to this profile"}
+            return 200, self.rows("SELECT * FROM profiles WHERE id = ?", (requested_id,))
         if method == "GET" and url.path == "/search":
-            return 200, self.rows(f"SELECT * FROM profiles WHERE name LIKE '%{query.get('q', '')}%'")
+            session = self.sessions.get(headers.get("X-Token"))
+            q = query.get("q", "")
+            if session and session["role"] == "staff":
+                return 200, self.rows("SELECT * FROM profiles WHERE name LIKE ?", ("%" + q + "%",))
+            if session:
+                return 200, self.rows("SELECT * FROM profiles WHERE id = ? AND name LIKE ?", (session["id"], "%" + q + "%"))
+            return 401, {"error": "login required"}
         if method == "GET" and url.path == "/orders":
-            return 200, self.rows("SELECT * FROM orders")
+            session = self.sessions.get(headers.get("X-Token"))
+            if not session:
+                return 401, {"error": "login required"}
+            if session["role"] == "staff":
+                return 200, self.rows("SELECT * FROM orders")
+            return 200, self.rows("SELECT * FROM orders WHERE owner = ?", (session["id"],))
         if method == "POST" and url.path == "/orders":
             session = self.sessions.get(headers.get("X-Token"))
             if not session:
@@ -72,21 +92,43 @@ class Shop:
             self.db.commit()
             return 201, {"id": cursor.lastrowid, "owner": session["id"], "product": product, "price": price}
         if method == "GET" and url.path == "/admin/export":
-            if headers.get("X-Role") != "staff":
+            session = self.sessions.get(headers.get("X-Token"))
+            if not session or session["role"] != "staff":
                 return 403, {"error": "staff only"}
             return 200, self.rows("SELECT * FROM profiles")
         if method == "GET" and url.path == "/files":
-            name = f"files/{query.get('user', 'alice')}/{query.get('path', 'receipt.txt')}"
+            session = self.sessions.get(headers.get("X-Token"))
+            if not session:
+                return 401, {"error": "login required"}
+            user = query.get("user", "alice")
+            path = query.get("path", "receipt.txt")
+            if session["role"] != "staff" and user != session["username"]:
+                return 403, {"error": "access denied to this user's files"}
+            # Запрет path traversal для клиентов: путь не должен содержать ..
+            if session["role"] != "staff" and ".." in path.split("/"):
+                return 400, {"error": "invalid path"}
+            name = f"files/{user}/{path}"
             return 200, {"content": self.sandbox.read(name)}
         if method == "GET" and url.path == "/debug/logs":
+            session = self.sessions.get(headers.get("X-Token"))
+            if not session or session["role"] != "staff":
+                return 403, {"error": "staff only"}
             return 200, self.logs.copy()
         if method == "POST" and url.path == "/reviews":
             self.reviews.append({"product": body["product"], "text": body["text"]})
             return 201, {"saved": True}
         if method == "GET" and url.path == "/reviews/view":
-            return 200, "<html><body>" + "".join(f"<p>{r['text']}</p>" for r in self.reviews) + "</body></html>"
+            return 200, "<html><body>" + "".join(f"<p>{html.escape(r['text'])}</p>" for r in self.reviews) + "</body></html>"
         if method == "GET" and url.path == "/assistant/context":
-            orders = self.rows(f"SELECT * FROM orders WHERE id = {query.get('order_id', '1')}")
+            session = self.sessions.get(headers.get("X-Token"))
+            if not session:
+                return 401, {"error": "login required"}
+            order_id = query.get("order_id", "1")
+            orders = self.rows("SELECT * FROM orders WHERE id = ?", (order_id,))
+            if not orders:
+                return 404, {"error": "order not found"}
+            if session["role"] != "staff" and orders[0]["owner"] != session["id"]:
+                return 403, {"error": "access denied to this order"}
             prompt = (
                 "Ты помощник магазина. Прочитай заказ и отзывы. Верни JSON с полями tool и arguments.\n"
                 "Инструменты: read_file(path), export_profiles(), delete_tree(path).\n"
@@ -97,13 +139,24 @@ class Shop:
             )
             return 200, {"prompt": prompt}
         if method == "POST" and url.path == "/assistant/execute":
+            session = self.sessions.get(headers.get("X-Token"))
+            if not session:
+                return 401, {"error": "login required"}
             decision = body["decision"]
             tool, arguments = decision["tool"], decision.get("arguments", {})
             if tool == "read_file":
-                return 200, {"content": self.sandbox.read(arguments["path"])}
+                path = arguments.get("path", "")
+                if session["role"] != "staff":
+                    if not path.startswith(f"files/{session['username']}/"):
+                        return 403, {"error": "access denied to this file"}
+                return 200, {"content": self.sandbox.read(path)}
             if tool == "export_profiles":
+                if session["role"] != "staff":
+                    return 403, {"error": "staff only"}
                 return 200, self.rows("SELECT * FROM profiles")
             if tool == "delete_tree":
+                if session["role"] != "staff":
+                    return 403, {"error": "staff only"}
                 self.sandbox.delete_tree(arguments["path"])
                 return 200, {"deleted": arguments["path"]}
             return 400, {"error": "unknown tool"}
