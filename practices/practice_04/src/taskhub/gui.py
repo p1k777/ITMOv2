@@ -437,7 +437,8 @@ class TaskHubWindow:
         headings = ("Название", "Статус", "Срок", "Теги")
 
         for column, heading in zip(columns, headings):
-            if sort_by == column:
+            field = self.COLUMN_TO_FIELD.get(column, column)
+            if sort_by == field:
                 if sort_order == "asc":
                     self.tree.heading(column, text=f"{heading} ▲")
                 else:

@@ -13,11 +13,23 @@
                 "openai/gpt-5": {
                     "name": "openai/gpt-5"
                 },
-                "anthropic/claude-sonnet-4": {
-                    "name": "anthropic/claude-sonnet-4"
+                "anthropic/claude-sonnet-5": {
+                    "name": "anthropic/claude-sonnet-5"
                 }
             }
+        },
+        "freellmapi": {
+             "npm": "@ai-sdk/openai-compatible",
+            "name": "FreeLLMAPI",
+            "options": {
+                "baseURL": "http://localhost:31415/v1"
+            },
+            "models": {
+            "auto": {
+                 "name": "Auto (FreeLLMAPI)"
+            }
         }
+    }
     },
     "skills": {
         "paths": [

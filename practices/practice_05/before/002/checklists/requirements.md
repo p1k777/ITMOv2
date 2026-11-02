@@ -33,4 +33,3 @@
 
 - All items passed on first validation iteration.
 - GUI spec covers visual indicators, cyclic switching, and filter persistence.
-- Backend integration contract is defined in spec 001-tasks-sort.

@@ -37,4 +37,3 @@
 - Clarifications resolved: backend validation (FR-013), error propagation (FR-014), no file locking needed (Constraints).
 - Out of Scope section added: CLI, GUI, multi-column sort, created_at in GUI.
 - Constraints section added: technical restrictions, atomic writes, JSON as state.
-- Cross-spec alignment: `## Frontend Contract` section added (references 002-tasks-sort-gui); GUI "без сортировки" → `sort_by=None`; `sort_order=asc` default.

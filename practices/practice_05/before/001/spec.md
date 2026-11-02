@@ -111,15 +111,6 @@
 - **SortCriterion**: Критерий сортировки — одно из: "title", "status", "due_date", "created_at", "tags", None
 - **SortDirection**: Направление сортировки — "asc" или "desc"
 
-## Frontend Contract *(integration with 002-tasks-sort-gui)*
-
-GUI вызывает `controller.list_tasks(status, tag, search, sort_by, sort_order)`:
-- `sort_by` — одно из: "title", "status", "due_date", "tags", None (None = без сортировки, соответствует состоянию GUI "без сортировки")
-- `sort_order` — "asc" (по умолчанию) или "desc"
-- Сортировка применяется после фильтрации (status, tag, search)
-- Сортировка не изменяет порядок задач в файле
-- GUI не предоставляет интерфейс для сортировки по `created_at` — доступные колонки: Название (title), Статус (status), Срок (due_date), Теги (tags)
-
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
@@ -147,4 +138,3 @@ GUI вызывает `controller.list_tasks(status, tag, search, sort_by, sort_o
 - Q: Должен ли backend проверять значение `sort_by` и `sort_order` и выбрасывать исключение при недопустимом значении, или он должен молча игнорировать невалидные параметры? → A: Backend валидирует и выбрасывает `ValueError` при недопустимом значении (FR-013)
 - Q: Что должен делать `list_tasks`, если `tasks.json` повреждён (невалидный JSON) — propagates исключение из `json.load` или возвращает пустой список? → A: Propagates исключение (FR-014). Текущая реализация в `storage.py` не ловит исключения в `list_tasks`.
 - Q: Нужна ли блокировка файлов (file lock) при вызове `list_tasks`, чтобы избежать чтения во время записи (`save_tasks`)? → A: Lock не нужен. `tasks.json` записывается атомарно через `tmp.replace()`, что гарантирует целостность чтения (Constraints).
-- Q: Какие значения `sort_by` и `sort_order` передаёт GUI в `list_tasks`, и как соотносится состояние GUI "без сортировки" с backend-параметром `sort_by=None`? → A: GUI передаёт `sort_by` ∈ {"title", "status", "due_date", "tags", None}, `sort_order` ∈ {"asc", "desc"}; состояние GUI "без сортировки" соответствует `sort_by=None`, `sort_order="asc"` (по умолчанию)
